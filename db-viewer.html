@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreshMartDB - Database Viewer</title>
+    <style>
+        :root {
+            --primary: #1a7f5a;
+            --primary-dark: #146547;
+            --primary-light: #e8f5f0;
+            --accent: #f5a623;
+            --dark: #12241d;
+            --text: #2d3b36;
+            --text-light: #6b7c76;
+            --bg: #f4f7f6;
+            --danger: #e05252;
+            --radius: 12px;
+            --shadow-sm: 0 2px 8px rgba(18, 36, 29, 0.06);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            padding: 28px 34px;
+        }
+
+        .head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--dark); }
+        h1 span { color: var(--primary); }
+        .meta { color: var(--text-light); font-size: 0.85rem; margin: 4px 0 22px; }
+
+        .toolbar { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        .btn {
+            border: 1.5px solid #dde5e1;
+            background: white;
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .btn:hover { border-color: var(--primary); color: var(--primary); }
+        .btn.primary { background: var(--primary); border-color: var(--primary); color: white; }
+        .btn.primary:hover { background: var(--primary-dark); }
+        .btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 9px 18px;
+            border: none;
+            border-radius: 10px;
+            background: white;
+            box-shadow: var(--shadow-sm);
+            font-family: inherit;
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, var(--primary), #2eb884);
+            color: white;
+        }
+
+        .tab .count {
+            background: rgba(0,0,0,0.12);
+            border-radius: 50px;
+            padding: 1px 8px;
+            font-size: 0.72rem;
+            margin-left: 5px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #e8efec;
+            overflow: auto;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th {
+            text-align: left;
+            padding: 11px 18px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-light);
+            background: #fafcfb;
+            border-bottom: 1px solid #eef3f1;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 11px 18px;
+            font-size: 0.84rem;
+            border-bottom: 1px solid #f2f6f4;
+            vertical-align: top;
+            max-width: 320px;
+            word-break: break-word;
+        }
+
+        tbody tr:hover { background: #fafcfb; }
+
+        .pill {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            margin: 1px 2px 1px 0;
+        }
+
+        .empty { text-align: center; padding: 50px; color: var(--text-light); }
+
+        pre {
+            margin: 0;
+            padding: 18px 22px;
+            font-size: 0.8rem;
+            line-height: 1.55;
+            overflow: auto;
+            max-height: 70vh;
+            background: #0e1f18;
+            color: #b8e6d2;
+            border-radius: var(--radius);
+        }
+
+        .muted { color: var(--text-light); font-size: 0.76rem; }
+        code { background: #eef3f1; padding: 1px 6px; border-radius: 5px; font-size: 0.78rem; }
+    </style>
+</head>
+<body>
+    <div class="head">
+        <h1>🗄️ Fresh<span>MartDB</span> — Database Viewer</h1>
+        <div class="toolbar">
+            <button class="btn primary" onclick="DB.exportDB()">⬇ Export DB (JSON)</button>
+            <button class="btn" onclick="render()">↻ Refresh</button>
+            <a class="btn" href="admin.html">← Back to Admin</a>
+        </div>
+    </div>
+    <p class="meta" id="dbMeta"></p>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="content"></div>
+
+    <script src="db.js"></script>
+    <script>
+        // ===== Admin auth guard =====
+        if (sessionStorage.getItem('isAdmin') !== 'true') {
+            window.location.href = 'login.html';
+        }
+
+        let activeTab = 'users';
+
+        function getRawDB() {
+            return JSON.parse(localStorage.getItem('freshmart_db'));
+        }
+
+        function tableHTML(headers, rows) {
+            if (rows.length === 0) return '<div class="empty">No records in this table.</div>';
+            return `<table>
+                <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                <tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>
+            </table>`;
+        }
+
+        function itemPills(items) {
+            return (items || []).map(it => `<span class="pill">${it.emoji || ''} ${it.name} ×${it.qty || 1} @ $${(it.price || 0).toFixed(2)}</span>`).join(' ');
+        }
+
+        const views = {
+            users(db) {
+                const rows = Object.entries(db.users).map(([username, u]) => [
+                    `<strong>${username}</strong>`,
+                    `<code>${u.password}</code>`,
+                    u.fullName || '<span class="muted">—</span>',
+                    u.address || '<span class="muted">—</span>',
+                    u.phone || '<span class="muted">—</span>',
+                    u.createdAt ? new Date(u.createdAt).toLocaleString() : '<span class="muted">—</span>'
+                ]);
+                return tableHTML(['Username', 'Password', 'Full Name', 'Address', 'Phone', 'Created'], rows);
+            },
+            carts(db) {
+                const rows = Object.entries(db.carts)
+                    .filter(([, c]) => (c || []).length > 0)
+                    .map(([username, c]) => [
+                        `<strong>${username}</strong>`,
+                        c.reduce((s, i) => s + (i.qty || 1), 0) + ' item(s)',
+                        itemPills(c),
+                        '$' + c.reduce((s, i) => s + i.price * i.qty, 0).toFixed(2)
+                    ]);
+                return tableHTML(['Customer', 'Qty', 'Items', 'Subtotal'], rows);
+            },
+            orders(db) {
+                const rows = [...db.orders]
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .map(o => [
+                        `<strong>${o.id}</strong>`,
+                        o.customer || '<span class="muted">—</span>',
+                        `${o.name || ''}<br><span class="muted">${o.phone || ''}</span>`,
+                        o.address || '<span class="muted">—</span>',
+                        itemPills(o.items),
+                        `<strong>$${o.total}</strong>`,
+                        o.status || 'Pending',
+                        new Date(o.date).toLocaleString()
+                    ]);
+                return tableHTML(['Order ID', 'Customer', 'Contact', 'Address', 'Items', 'Total', 'Status', 'Date'], rows);
+            },
+            inventory(db) {
+                const rows = db.inventory.map(p => [
+                    `${p.emoji} <strong>${p.name}</strong>`,
+                    `<code>${p.sku}</code>`,
+                    p.category,
+                    `$${p.price.toFixed(2)} ${p.unit || ''}`,
+                    `<strong>${p.stock}</strong>`,
+                    p.reorder,
+                    p.stock === 0 ? '⛔ Out of Stock' : p.stock <= p.reorder ? '⚠️ Low Stock' : '✔ In Stock'
+                ]);
+                return tableHTML(['Product', 'SKU', 'Category', 'Price', 'Stock', 'Reorder Pt.', 'Status'], rows);
+            },
+            settings(db) {
+                const s = db.settings;
+                const rows = [
+                    ['admin.username', `<code>${s.admin.username}</code>`],
+                    ['admin.password', `<code>${s.admin.password}</code>`],
+                    ['deliveryFee', '$' + s.deliveryFee],
+                    ['freeDeliveryThreshold', '$' + s.freeDeliveryThreshold]
+                ];
+                return tableHTML(['Key', 'Value'], rows);
+            },
+            raw(db) {
+                return `<pre>${JSON.stringify(db, null, 2).replace(/</g, '&lt;')}</pre>`;
+            }
+        };
+
+        function render() {
+            const db = getRawDB();
+            if (!db) {
+                document.getElementById('content').innerHTML = '<div class="panel"><div class="empty">Database not found.</div></div>';
+                return;
+            }
+
+            document.getElementById('dbMeta').innerHTML =
+                `Storage key: <code>freshmart_db</code> &nbsp;•&nbsp; Version ${db.meta.version} &nbsp;•&nbsp; Created ${new Date(db.meta.createdAt).toLocaleString()} &nbsp;•&nbsp; Size: ${(JSON.stringify(db).length / 1024).toFixed(1)} KB`;
+
+            const tabs = [
+                { id: 'users', label: '👥 Users', count: Object.keys(db.users).length },
+                { id: 'carts', label: '🛍️ Carts', count: Object.values(db.carts).filter(c => (c || []).length > 0).length },
+                { id: 'orders', label: '📦 Orders', count: db.orders.length },
+                { id: 'inventory', label: '🏷️ Inventory', count: db.inventory.length },
+                { id: 'settings', label: '⚙️ Settings', count: 4 },
+                { id: 'raw', label: '{ } Raw JSON', count: '' }
+            ];
+
+            document.getElementById('tabs').innerHTML = tabs.map(t =>
+                `<button class="tab ${t.id === activeTab ? 'active' : ''}" data-tab="${t.id}">${t.label}${t.count !== '' ? `<span class="count">${t.count}</span>` : ''}</button>`
+            ).join('');
+
+            const body = views[activeTab](db);
+            document.getElementById('content').innerHTML = activeTab === 'raw' ? body : `<div class="panel">${body}</div>`;
+        }
+
+        document.getElementById('tabs').addEventListener('click', (e) => {
+            const tab = e.target.closest('.tab');
+            if (!tab) return;
+            activeTab = tab.dataset.tab;
+            render();
+        });
+
+        render();
+    </script>
+</body>
+</html>
