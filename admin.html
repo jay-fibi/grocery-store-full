@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreshMart Admin - Enterprise Console</title>
+    <style>
+        :root {
+            --primary: #1a7f5a;
+            --primary-dark: #146547;
+            --primary-light: #e8f5f0;
+            --accent: #f5a623;
+            --dark: #12241d;
+            --sidebar: #0e1f18;
+            --text: #2d3b36;
+            --text-light: #6b7c76;
+            --bg: #f4f7f6;
+            --white: #ffffff;
+            --danger: #e05252;
+            --warning: #f5a623;
+            --info: #3b82c4;
+            --radius: 12px;
+            --shadow-sm: 0 2px 8px rgba(18, 36, 29, 0.06);
+            --shadow-md: 0 8px 24px rgba(18, 36, 29, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ===== Sidebar ===== */
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .sidebar .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 20px 22px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .sidebar .logo {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--primary), #2eb884);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
+        }
+
+        .sidebar .brand h1 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+
+        .sidebar .brand h1 span { color: #4ed6a2; }
+        .sidebar .brand small {
+            display: block;
+            font-size: 0.62rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.45);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .nav {
+            flex: 1;
+            padding: 16px 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 14px;
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.6);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 4px;
+            text-align: left;
+        }
+
+        .nav-item:hover { background: rgba(255,255,255,0.06); color: white; }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, var(--primary), #2eb884);
+            color: white;
+            box-shadow: 0 6px 16px rgba(26,127,90,0.4);
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .admin-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .admin-chip .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .admin-chip .info p { margin: 0; font-size: 0.82rem; font-weight: 700; }
+        .admin-chip .info small { color: rgba(255,255,255,0.45); font-size: 0.68rem; }
+
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: transparent;
+            color: rgba(255,255,255,0.7);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .logout-btn:hover { border-color: var(--danger); color: #ff9d9d; background: rgba(224,82,82,0.12); }
+
+        /* ===== Main ===== */
+        .main {
+            flex: 1;
+            margin-left: 240px;
+            padding: 28px 34px;
+            animation: fadeIn 0.5s ease both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(14px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 26px;
+        }
+
+        .page-head h2 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--dark); letter-spacing: -0.5px; }
+        .page-head p { margin: 4px 0 0; color: var(--text-light); font-size: 0.86rem; }
+
+        .view { display: none; }
+        .view.active { display: block; animation: fadeIn 0.4s ease both; }
+
+        /* ===== Stat Cards ===== */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #e8efec;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.green { background: var(--primary-light); }
+        .stat-icon.orange { background: #fdf3e0; }
+        .stat-icon.blue { background: #e8f1f9; }
+        .stat-icon.red { background: #fdeaea; }
+
+        .stat-card h3 { margin: 0; font-size: 1.45rem; font-weight: 800; color: var(--dark); }
+        .stat-card p { margin: 2px 0 0; font-size: 0.76rem; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* ===== Panels & Tables ===== */
+        .panel {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid #e8efec;
+            overflow: hidden;
+        }
+
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 22px;
+            border-bottom: 1px solid #eef3f1;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .panel-head h3 { margin: 0; font-size: 1.02rem; font-weight: 800; color: var(--dark); }
+
+        .search-box {
+            padding: 9px 14px;
+            border: 1.5px solid #dde5e1;
+            border-radius: 10px;
+            font-size: 0.84rem;
+            font-family: inherit;
+            width: 240px;
+            transition: var(--transition);
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26,127,90,0.12);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 11px 22px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-light);
+            background: #fafcfb;
+            border-bottom: 1px solid #eef3f1;
+        }
+
+        td {
+            padding: 13px 22px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #f2f6f4;
+            vertical-align: middle;
+        }
+
+        tbody tr { transition: background 0.2s ease; }
+        tbody tr:hover { background: #fafcfb; }
+
+        .order-id { font-weight: 800; color: var(--primary); }
+        .muted { color: var(--text-light); font-size: 0.78rem; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .badge.pending { background: #fdf3e0; color: #b57a10; }
+        .badge.shipped { background: #e8f1f9; color: #2a6ca8; }
+        .badge.delivered { background: var(--primary-light); color: var(--primary-dark); }
+        .badge.instock { background: var(--primary-light); color: var(--primary-dark); }
+        .badge.lowstock { background: #fdf3e0; color: #b57a10; }
+        .badge.outstock { background: #fdeaea; color: #b03a3a; }
+
+        .action-btn {
+            border: 1.5px solid #dde5e1;
+            background: white;
+            padding: 6px 13px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text);
+        }
+
+        .action-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .action-btn.primary { background: var(--primary); border-color: var(--primary); color: white; }
+        .action-btn.primary:hover { background: var(--primary-dark); }
+
+        .stock-input, .restock-input {
+            width: 70px;
+            padding: 6px 10px;
+            border: 1.5px solid #dde5e1;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-family: inherit;
+            font-weight: 700;
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .stock-input:focus, .restock-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(26,127,90,0.12);
+        }
+
+        .restock-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .restock-input { width: 64px; }
+
+        .stock-bar {
+            width: 90px;
+            height: 6px;
+            background: #eef3f1;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .stock-bar .fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 70px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state .icon { font-size: 52px; margin-bottom: 12px; }
+
+        .item-pill {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            margin: 1px 2px 1px 0;
+        }
+
+        /* Order details expandable row */
+        .details-row { display: none; background: #fafcfb; }
+        .details-row.open { display: table-row; }
+        .details-row td { padding: 14px 22px; }
+
+        /* ===== Toast ===== */
+        .toast {
+            position: fixed;
+            bottom: 26px;
+            right: 26px;
+            background: var(--dark);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            box-shadow: var(--shadow-md);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(60px);
+            transition: var(--transition);
+            pointer-events: none;
+        }
+
+        .toast.show { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 860px) {
+            .sidebar { width: 68px; }
+            .sidebar .brand h1, .sidebar .brand small, .nav-item .label,
+            .admin-chip .info { display: none; }
+            .main { margin-left: 68px; padding: 20px; }
+            .search-box { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="logo">🛒</div>
+            <div>
+                <h1>Fresh<span>Mart</span></h1>
+                <small>Enterprise Console</small>
+            </div>
+        </div>
+        <nav class="nav">
+            <button class="nav-item active" data-view="dashboard">📊 <span class="label">Dashboard</span></button>
+            <button class="nav-item" data-view="orders">📦 <span class="label">Orders</span></button>
+            <button class="nav-item" data-view="inventory">🏷️ <span class="label">Inventory</span></button>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="admin-chip">
+                <div class="avatar">A</div>
+                <div class="info">
+                    <p>Administrator</p>
+                    <small>Super Admin</small>
+                </div>
+            </div>
+            <button class="logout-btn" id="logoutBtn">Sign Out</button>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+        <!-- ===== Dashboard View ===== -->
+        <section class="view active" id="view-dashboard">
+            <div class="page-head">
+                <div>
+                    <h2>Dashboard</h2>
+                    <p id="todayDate"></p>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-icon green">📦</div>
+                    <div><h3 id="statOrders">0</h3><p>Total Orders</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">💰</div>
+                    <div><h3 id="statRevenue">$0</h3><p>Total Revenue</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon blue">👥</div>
+                    <div><h3 id="statCustomers">0</h3><p>Registered Customers</p></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red">⚠️</div>
+                    <div><h3 id="statLowStock">0</h3><p>Low Stock Alerts</p></div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-head"><h3>Recent Orders</h3></div>
+                <div id="recentOrdersTable"></div>
+            </div>
+        </section>
+
+        <!-- ===== Orders View ===== -->
+        <section class="view" id="view-orders">
+            <div class="page-head">
+                <div>
+                    <h2>Order Management</h2>
+                    <p>Track and manage all customer orders</p>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-head">
+                    <h3>All Orders</h3>
+                    <input type="text" class="search-box" id="orderSearch" placeholder="Search by order ID or customer...">
+                </div>
+                <div id="ordersTable"></div>
+            </div>
+        </section>
+
+        <!-- ===== Inventory View ===== -->
+        <section class="view" id="view-inventory">
+            <div class="page-head">
+                <div>
+                    <h2>Inventory Management</h2>
+                    <p>Monitor stock levels and replenish products</p>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-head">
+                    <h3>Product Catalog</h3>
+                    <input type="text" class="search-box" id="inventorySearch" placeholder="Search products or categories...">
+                </div>
+                <div id="inventoryTable"></div>
+            </div>
+        </section>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ===== Admin auth guard =====
+        if (sessionStorage.getItem('isAdmin') !== 'true') {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            sessionStorage.removeItem('currentUser');
+            sessionStorage.removeItem('isAdmin');
+            window.location.href = 'login.html';
+        });
+
+        document.getElementById('todayDate').innerText = new Date().toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+        // ===== Toast =====
+        const toast = document.getElementById('toast');
+        let toastTimer;
+        function showToast(msg) {
+            toast.innerText = msg;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+        }
+
+        // ===== Navigation =====
+        document.querySelectorAll('.nav-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('view-' + btn.dataset.view).classList.add('active');
+            });
+        });
+
+        // ===== Inventory (seed if missing) =====
+        const INVENTORY_KEY = 'fm_inventory';
+        const DEFAULT_INVENTORY = [
+            { sku: 'FM-1001', name: 'Apples', emoji: '🍎', category: 'Produce', price: 2.99, stock: 120, reorder: 30 },
+            { sku: 'FM-1002', name: 'Bananas', emoji: '🍌', category: 'Produce', price: 0.99, stock: 200, reorder: 50 },
+            { sku: 'FM-1003', name: 'Carrots', emoji: '🥕', category: 'Produce', price: 1.49, stock: 85, reorder: 25 },
+            { sku: 'FM-1004', name: 'Tomatoes', emoji: '🍅', category: 'Produce', price: 1.99, stock: 14, reorder: 25 },
+            { sku: 'FM-1005', name: 'Potatoes', emoji: '🥔', category: 'Produce', price: 3.99, stock: 60, reorder: 20 },
+            { sku: 'FM-1006', name: 'Onions', emoji: '🧅', category: 'Produce', price: 2.49, stock: 75, reorder: 20 },
+            { sku: 'FM-2001', name: 'Milk', emoji: '🥛', category: 'Dairy', price: 3.49, stock: 48, reorder: 20 },
+            { sku: 'FM-2002', name: 'Eggs', emoji: '🥚', category: 'Dairy', price: 4.99, stock: 8, reorder: 15 },
+            { sku: 'FM-3001', name: 'Bread', emoji: '🍞', category: 'Bakery', price: 2.99, stock: 35, reorder: 15 },
+            { sku: 'FM-2003', name: 'Cheese', emoji: '🧀', category: 'Dairy', price: 5.99, stock: 26, reorder: 10 },
+            { sku: 'FM-4001', name: 'Chicken Breast', emoji: '🍗', category: 'Meat', price: 6.99, stock: 42, reorder: 15 },
+            { sku: 'FM-4002', name: 'Beef Steak', emoji: '🥩', category: 'Meat', price: 12.99, stock: 0, reorder: 10 },
+            { sku: 'FM-5001', name: 'Rice', emoji: '🍚', category: 'Pantry', price: 4.99, stock: 90, reorder: 25 },
+            { sku: 'FM-5002', name: 'Pasta', emoji: '🍝', category: 'Pantry', price: 1.99, stock: 110, reorder: 30 },
+            { sku: 'FM-6001', name: 'Orange Juice', emoji: '🧃', category: 'Beverages', price: 3.99, stock: 55, reorder: 20 },
+            { sku: 'FM-6002', name: 'Coffee', emoji: '☕', category: 'Beverages', price: 7.99, stock: 33, reorder: 12 },
+            { sku: 'FM-6003', name: 'Tea', emoji: '🍵', category: 'Beverages', price: 4.99, stock: 44, reorder: 12 },
+            { sku: 'FM-2004', name: 'Yogurt', emoji: '🍦', category: 'Dairy', price: 0.99, stock: 12, reorder: 20 },
+            { sku: 'FM-5003', name: 'Cereal', emoji: '🥣', category: 'Pantry', price: 4.49, stock: 67, reorder: 20 },
+            { sku: 'FM-1007', name: 'Spinach', emoji: '🥬', category: 'Produce', price: 2.99, stock: 29, reorder: 15 }
+        ];
+
+        let inventory = JSON.parse(localStorage.getItem(INVENTORY_KEY) || 'null');
+        if (!inventory) {
+            inventory = DEFAULT_INVENTORY;
+            localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+        }
+
+        function saveInventory() {
+            localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+        }
+
+        // ===== Load all orders from every customer =====
+        function loadAllOrders() {
+            const all = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('orders_')) {
+                    const customer = key.slice(7);
+                    const orders = JSON.parse(localStorage.getItem(key) || '[]');
+                    orders.forEach((o, idx) => all.push({ ...o, customer, _key: key, _idx: idx }));
+                }
+            }
+            all.sort((a, b) => new Date(b.date) - new Date(a.date));
+            return all;
+        }
+
+        function countCustomers() {
+            let count = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('user_')) count++;
+            }
+            return count;
+        }
+
+        function updateOrderStatus(key, idx, status) {
+            const orders = JSON.parse(localStorage.getItem(key) || '[]');
+            if (orders[idx]) {
+                orders[idx].status = status;
+                localStorage.setItem(key, JSON.stringify(orders));
+            }
+            renderAll();
+            showToast('Order marked as ' + status);
+        }
+
+        // ===== Rendering =====
+        function statusBadge(status) {
+            const s = status || 'Pending';
+            const cls = s.toLowerCase();
+            const icon = s === 'Delivered' ? '✅' : s === 'Shipped' ? '🚚' : '⏳';
+            return `<span class="badge ${cls}">${icon} ${s}</span>`;
+        }
+
+        function nextActionBtn(order) {
+            const s = order.status || 'Pending';
+            if (s === 'Pending') return `<button class="action-btn primary" data-orderkey="${order._key}" data-orderidx="${order._idx}" data-status="Shipped">Ship</button>`;
+            if (s === 'Shipped') return `<button class="action-btn primary" data-orderkey="${order._key}" data-orderidx="${order._idx}" data-status="Delivered">Deliver</button>`;
+            return '';
+        }
+
+        function ordersTableHTML(orders, compact) {
+            if (orders.length === 0) {
+                return `<div class="empty-state"><div class="icon">📭</div><p><strong>No orders yet</strong></p><p class="muted">Orders placed by customers will appear here.</p></div>`;
+            }
+            let rows = '';
+            orders.forEach(o => {
+                const date = new Date(o.date);
+                const itemCount = (o.items || []).reduce((s, it) => s + (it.qty || 1), 0);
+                const itemPills = (o.items || []).map(it => `<span class="item-pill">${it.emoji || ''} ${it.name} ×${it.qty || 1}</span>`).join(' ');
+                rows += `
+                    <tr>
+                        <td><span class="order-id">${o.id}</span><br><span class="muted">${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span></td>
+                        <td><strong>${o.customer}</strong><br><span class="muted">${o.name || ''}</span></td>
+                        <td>${itemCount} item(s)</td>
+                        <td><strong>$${o.total}</strong></td>
+                        ${compact ? '' : `<td class="muted" style="max-width:180px;">${o.address || '-'}<br>${o.phone || ''}</td>`}
+                        <td>${statusBadge(o.status)}</td>
+                        ${compact ? '' : `<td>
+                            <button class="action-btn toggle-details">Details</button>
+                            ${nextActionBtn(o)}
+                        </td>`}
+                    </tr>
+                    ${compact ? '' : `<tr class="details-row"><td colspan="7"><strong style="font-size:0.76rem; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-light);">Order Items</strong><br><div style="margin-top:6px;">${itemPills}</div></td></tr>`}
+                `;
+            });
+            const headCols = compact
+                ? '<th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th>'
+                : '<th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Delivery</th><th>Status</th><th>Actions</th>';
+            return `<table><thead><tr>${headCols}</tr></thead><tbody>${rows}</tbody></table>`;
+        }
+
+        function renderDashboard() {
+            const orders = loadAllOrders();
+            const revenue = orders.reduce((s, o) => s + parseFloat(o.total || 0), 0);
+            const lowStock = inventory.filter(p => p.stock <= p.reorder).length;
+
+            document.getElementById('statOrders').innerText = orders.length;
+            document.getElementById('statRevenue').innerText = '$' + revenue.toFixed(2);
+            document.getElementById('statCustomers').innerText = countCustomers();
+            document.getElementById('statLowStock').innerText = lowStock;
+
+            document.getElementById('recentOrdersTable').innerHTML = ordersTableHTML(orders.slice(0, 5), true);
+        }
+
+        function renderOrders(filter = '') {
+            let orders = loadAllOrders();
+            if (filter) {
+                const f = filter.toLowerCase();
+                orders = orders.filter(o =>
+                    (o.id || '').toLowerCase().includes(f) ||
+                    (o.customer || '').toLowerCase().includes(f) ||
+                    (o.name || '').toLowerCase().includes(f)
+                );
+            }
+            document.getElementById('ordersTable').innerHTML = ordersTableHTML(orders, false);
+        }
+
+        function stockBadge(p) {
+            if (p.stock === 0) return '<span class="badge outstock">⛔ Out of Stock</span>';
+            if (p.stock <= p.reorder) return '<span class="badge lowstock">⚠️ Low Stock</span>';
+            return '<span class="badge instock">✔ In Stock</span>';
+        }
+
+        function stockBarColor(p) {
+            if (p.stock === 0) return 'var(--danger)';
+            if (p.stock <= p.reorder) return 'var(--warning)';
+            return 'var(--primary)';
+        }
+
+        function renderInventory(filter = '') {
+            let items = inventory;
+            if (filter) {
+                const f = filter.toLowerCase();
+                items = items.filter(p =>
+                    p.name.toLowerCase().includes(f) ||
+                    p.category.toLowerCase().includes(f) ||
+                    p.sku.toLowerCase().includes(f)
+                );
+            }
+
+            if (items.length === 0) {
+                document.getElementById('inventoryTable').innerHTML =
+                    `<div class="empty-state"><div class="icon">🔍</div><p><strong>No products found</strong></p></div>`;
+                return;
+            }
+
+            let rows = '';
+            items.forEach(p => {
+                const realIdx = inventory.indexOf(p);
+                const pct = Math.min(100, (p.stock / 150) * 100);
+                rows += `
+                    <tr>
+                        <td><span style="font-size:20px; margin-right:8px;">${p.emoji}</span><strong>${p.name}</strong><br><span class="muted">${p.sku}</span></td>
+                        <td>${p.category}</td>
+                        <td><strong>$${p.price.toFixed(2)}</strong></td>
+                        <td>
+                            <input type="number" class="stock-input" min="0" value="${p.stock}" data-invidx="${realIdx}">
+                            <div class="stock-bar"><div class="fill" style="width:${pct}%; background:${stockBarColor(p)};"></div></div>
+                        </td>
+                        <td class="muted">${p.reorder}</td>
+                        <td>${stockBadge(p)}</td>
+                        <td>
+                            <div class="restock-group">
+                                <input type="number" class="restock-input" min="1" placeholder="Qty" data-invidx="${realIdx}">
+                                <button class="action-btn primary restock-btn" data-invidx="${realIdx}">+ Restock</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('inventoryTable').innerHTML = `
+                <table>
+                    <thead><tr><th>Product</th><th>Category</th><th>Unit Price</th><th>Stock</th><th>Reorder Pt.</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+        }
+
+        function renderAll() {
+            renderDashboard();
+            renderOrders(document.getElementById('orderSearch').value.trim());
+            renderInventory(document.getElementById('inventorySearch').value.trim());
+        }
+
+        // ===== Event delegation =====
+        document.getElementById('ordersTable').addEventListener('click', (e) => {
+            const statusBtn = e.target.closest('[data-status]');
+            if (statusBtn) {
+                updateOrderStatus(statusBtn.dataset.orderkey, parseInt(statusBtn.dataset.orderidx), statusBtn.dataset.status);
+                return;
+            }
+            const detailsBtn = e.target.closest('.toggle-details');
+            if (detailsBtn) {
+                const row = detailsBtn.closest('tr').nextElementSibling;
+                if (row && row.classList.contains('details-row')) row.classList.toggle('open');
+            }
+        });
+
+        document.getElementById('inventoryTable').addEventListener('click', (e) => {
+            const btn = e.target.closest('.restock-btn');
+            if (!btn) return;
+            const idx = parseInt(btn.dataset.invidx);
+            const qtyInput = btn.closest('.restock-group').querySelector('.restock-input');
+            const qty = parseInt(qtyInput.value);
+            if (!qty || qty < 1) {
+                qtyInput.style.borderColor = 'var(--danger)';
+                qtyInput.focus();
+                showToast('Enter a valid restock quantity');
+                return;
+            }
+            inventory[idx].stock += qty;
+            saveInventory();
+            renderAll();
+            showToast(inventory[idx].name + ' restocked (+' + qty + ' units)');
+        });
+
+        document.getElementById('inventoryTable').addEventListener('change', (e) => {
+            const input = e.target.closest('.stock-input');
+            if (!input) return;
+            const idx = parseInt(input.dataset.invidx);
+            const val = Math.max(0, parseInt(input.value) || 0);
+            inventory[idx].stock = val;
+            saveInventory();
+            renderAll();
+            showToast(inventory[idx].name + ' stock updated to ' + val);
+        });
+
+        document.getElementById('orderSearch').addEventListener('input', (e) => renderOrders(e.target.value.trim()));
+        document.getElementById('inventorySearch').addEventListener('input', (e) => renderInventory(e.target.value.trim()));
+
+        // Initial render
+        renderAll();
+    </script>
+</body>
+</html>

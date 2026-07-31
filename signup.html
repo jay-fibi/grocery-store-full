@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FreshMart - Create Account</title>
+    <style>
+        :root {
+            --primary: #1a7f5a;
+            --primary-dark: #146547;
+            --accent: #f5a623;
+            --dark: #12241d;
+            --danger: #ff8f8f;
+        }
+
+        * { box-sizing: border-box; }
+
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', 'Inter', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(120deg, var(--dark) 0%, #1a4a38 55%, var(--primary) 100%);
+            overflow: hidden;
+        }
+
+        /* Floating shapes animation */
+        .circles {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            z-index: 0;
+        }
+
+        .circles li {
+            position: absolute;
+            display: block;
+            list-style: none;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.07);
+            animation: rise 25s linear infinite;
+            bottom: -150px;
+            border-radius: 8px;
+        }
+
+        .circles li:nth-child(1) { left: 25%; width: 80px; height: 80px; animation-delay: 0s; }
+        .circles li:nth-child(2) { left: 10%; width: 20px; height: 20px; animation-delay: 2s; animation-duration: 12s; }
+        .circles li:nth-child(3) { left: 70%; width: 20px; height: 20px; animation-delay: 4s; }
+        .circles li:nth-child(4) { left: 40%; width: 60px; height: 60px; animation-delay: 0s; animation-duration: 18s; }
+        .circles li:nth-child(5) { left: 65%; width: 20px; height: 20px; animation-delay: 0s; }
+        .circles li:nth-child(6) { left: 75%; width: 110px; height: 110px; animation-delay: 3s; }
+        .circles li:nth-child(7) { left: 35%; width: 150px; height: 150px; animation-delay: 7s; }
+        .circles li:nth-child(8) { left: 50%; width: 25px; height: 25px; animation-delay: 15s; animation-duration: 45s; }
+        .circles li:nth-child(9) { left: 20%; width: 15px; height: 15px; animation-delay: 2s; animation-duration: 35s; }
+        .circles li:nth-child(10) { left: 85%; width: 150px; height: 150px; animation-delay: 0s; animation-duration: 11s; }
+
+        @keyframes rise {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-1000px) rotate(720deg); opacity: 0; border-radius: 50%; }
+        }
+
+        .login-wrapper {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 22px;
+            padding: 44px 40px;
+            width: 380px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+            color: white;
+            z-index: 1;
+            animation: cardIn 0.7s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+        }
+
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(32px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .brand .logo {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--primary), #2eb884);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .brand h1 span { color: #4ed6a2; }
+
+        .subtitle {
+            text-align: center;
+            margin: 0 0 30px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .input-group {
+            margin-bottom: 22px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 13px 16px;
+            border: 1.5px solid rgba(255, 255, 255, 0.35);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.22);
+            color: white;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.55);
+        }
+
+        .input-group input:focus {
+            background: rgba(0, 0, 0, 0.38);
+            border-color: #4ed6a2;
+            box-shadow: 0 0 0 4px rgba(78, 214, 162, 0.18);
+        }
+
+        .error-msg {
+            color: var(--danger);
+            font-size: 0.82rem;
+            margin: -12px 0 16px;
+            display: none;
+            animation: shake 0.35s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), #2eb884);
+            color: white;
+            font-size: 16px;
+            font-weight: 800;
+            font-family: inherit;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 26px rgba(46, 184, 132, 0.45);
+        }
+
+        .links {
+            margin-top: 22px;
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .links a {
+            color: #4ed6a2;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .links a:hover {
+            color: white;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <ul class="circles">
+        <li></li><li></li><li></li><li></li><li></li>
+        <li></li><li></li><li></li><li></li><li></li>
+    </ul>
+    <div class="login-wrapper">
+        <div class="brand">
+            <div class="logo">🛒</div>
+            <h1>Fresh<span>Mart</span></h1>
+        </div>
+        <p class="subtitle">Create your account and start shopping fresh.</p>
+        <form id="signupForm">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Choose a username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Create a password" required>
+            </div>
+            <div class="input-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Re-enter password" required>
+            </div>
+            <p class="error-msg" id="errorMsg"></p>
+            <button type="submit" class="login-btn">Create Account</button>
+            <div class="links">
+                Already have an account? <a href="login.html">Sign in</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const errorMsg = document.getElementById('errorMsg');
+
+        function showError(msg) {
+            errorMsg.innerText = msg;
+            errorMsg.style.display = 'block';
+            errorMsg.style.animation = 'none';
+            void errorMsg.offsetWidth;
+            errorMsg.style.animation = '';
+        }
+
+        document.getElementById('signupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (username.length < 3) {
+                showError('Username must be at least 3 characters long.');
+                return;
+            }
+
+            if (password.length < 4) {
+                showError('Password must be at least 4 characters long.');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showError('Passwords do not match.');
+                return;
+            }
+
+            if (localStorage.getItem('user_' + username)) {
+                showError('Username already exists! Please choose another one.');
+                return;
+            }
+
+            localStorage.setItem('user_' + username, JSON.stringify({ password: password }));
+            sessionStorage.setItem('currentUser', username);
+            window.location.href = 'home.html';
+        });
+    </script>
+</body>
+</html>
