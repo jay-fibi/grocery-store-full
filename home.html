@@ -745,6 +745,7 @@
     <!-- Toast -->
     <div class="toast" id="toast"></div>
 
+    <script src="db.js"></script>
     <script>
         // ===== Auth guard =====
         const currentUser = sessionStorage.getItem('currentUser');
@@ -759,29 +760,8 @@
             sessionStorage.removeItem('currentUser');
         }
 
-        // ===== Products =====
-        const products = [
-            { name: 'Apples', emoji: '🍎', price: 2.99, unit: '/lb' },
-            { name: 'Bananas', emoji: '🍌', price: 0.99, unit: '/lb' },
-            { name: 'Carrots', emoji: '🥕', price: 1.49, unit: '/lb' },
-            { name: 'Tomatoes', emoji: '🍅', price: 1.99, unit: '/lb' },
-            { name: 'Potatoes', emoji: '🥔', price: 3.99, unit: '/bag' },
-            { name: 'Onions', emoji: '🧅', price: 2.49, unit: '/bag' },
-            { name: 'Milk', emoji: '🥛', price: 3.49, unit: '/gal' },
-            { name: 'Eggs', emoji: '🥚', price: 4.99, unit: '/doz' },
-            { name: 'Bread', emoji: '🍞', price: 2.99, unit: '' },
-            { name: 'Cheese', emoji: '🧀', price: 5.99, unit: '' },
-            { name: 'Chicken Breast', emoji: '🍗', price: 6.99, unit: '/lb' },
-            { name: 'Beef Steak', emoji: '🥩', price: 12.99, unit: '/lb' },
-            { name: 'Rice', emoji: '🍚', price: 4.99, unit: '/bag' },
-            { name: 'Pasta', emoji: '🍝', price: 1.99, unit: '' },
-            { name: 'Orange Juice', emoji: '🧃', price: 3.99, unit: '' },
-            { name: 'Coffee', emoji: '☕', price: 7.99, unit: '' },
-            { name: 'Tea', emoji: '🍵', price: 4.99, unit: '' },
-            { name: 'Yogurt', emoji: '🍦', price: 0.99, unit: '' },
-            { name: 'Cereal', emoji: '🥣', price: 4.49, unit: '' },
-            { name: 'Spinach', emoji: '🥬', price: 2.99, unit: '' }
-        ];
+        // ===== Products (loaded from the portable FreshMartDB) =====
+        const products = DB.getInventory();
 
         const productGrid = document.getElementById('productGrid');
         products.forEach((p, i) => {
@@ -807,12 +787,11 @@
         }, { threshold: 0.1 });
         document.querySelectorAll('.card').forEach(card => observer.observe(card));
 
-        // ===== Cart State (persisted per user) =====
-        const CART_KEY = 'cart_' + currentUser;
-        let cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+        // ===== Cart State (persisted per user in FreshMartDB) =====
+        let cart = DB.getCart(currentUser);
 
         function saveCart() {
-            localStorage.setItem(CART_KEY, JSON.stringify(cart));
+            DB.saveCart(currentUser, cart);
         }
 
         // ===== DOM refs =====
@@ -827,8 +806,17 @@
         const successModal = document.getElementById('successModal');
         const toast = document.getElementById('toast');
 
-        const DELIVERY_FEE = 4.99;
-        const FREE_DELIVERY_THRESHOLD = 35;
+        const dbSettings = DB.getSettings();
+        const DELIVERY_FEE = dbSettings.deliveryFee;
+        const FREE_DELIVERY_THRESHOLD = dbSettings.freeDeliveryThreshold;
+
+        // ===== Prefill checkout form from the customer's saved profile =====
+        const savedProfile = DB.getUserProfile(currentUser);
+        if (savedProfile) {
+            document.getElementById('fullName').value = savedProfile.fullName;
+            document.getElementById('addressInput').value = savedProfile.address;
+            document.getElementById('phoneInput').value = savedProfile.phone;
+        }
 
         // ===== Toast =====
         let toastTimer;
@@ -992,29 +980,27 @@
                 const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
                 const address = document.getElementById('addressInput').value.trim();
 
-                // Save order history
-                const orders = JSON.parse(localStorage.getItem('orders_' + currentUser) || '[]');
-                orders.push({
+                const fullName = document.getElementById('fullName').value.trim();
+                const phone = document.getElementById('phoneInput').value.trim();
+
+                // Save the order into the portable FreshMartDB
+                DB.addOrder({
                     id: orderId,
+                    customer: currentUser,
                     items: cart,
                     total: total.toFixed(2),
                     address: address,
-                    name: document.getElementById('fullName').value.trim(),
-                    phone: document.getElementById('phoneInput').value.trim(),
+                    name: fullName,
+                    phone: phone,
                     date: new Date().toISOString(),
                     status: 'Pending'
                 });
-                localStorage.setItem('orders_' + currentUser, JSON.stringify(orders));
+
+                // Save delivery details to the customer's profile for next time
+                DB.updateUserProfile(currentUser, { fullName, address, phone });
 
                 // Deduct stock from enterprise inventory (synced with Admin console)
-                const inventory = JSON.parse(localStorage.getItem('fm_inventory') || 'null');
-                if (inventory) {
-                    cart.forEach(item => {
-                        const product = inventory.find(p => p.name === item.name);
-                        if (product) product.stock = Math.max(0, product.stock - item.qty);
-                    });
-                    localStorage.setItem('fm_inventory', JSON.stringify(inventory));
-                }
+                DB.deductStock(cart);
 
                 // Show confirmation
                 document.getElementById('orderId').innerText = 'Order #' + orderId;
@@ -1029,9 +1015,6 @@
 
                 placeOrderBtn.disabled = false;
                 placeOrderBtn.innerText = 'Place Order';
-                document.getElementById('fullName').value = '';
-                document.getElementById('addressInput').value = '';
-                document.getElementById('phoneInput').value = '';
 
                 successModal.classList.add('open');
             }, 900);

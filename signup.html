@@ -242,6 +242,7 @@
         </form>
     </div>
 
+    <script src="db.js"></script>
     <script>
         const errorMsg = document.getElementById('errorMsg');
 
@@ -274,12 +275,12 @@
                 return;
             }
 
-            if (localStorage.getItem('user_' + username)) {
+            if (DB.userExists(username)) {
                 showError('Username already exists! Please choose another one.');
                 return;
             }
 
-            localStorage.setItem('user_' + username, JSON.stringify({ password: password }));
+            DB.createUser(username, password);
             sessionStorage.setItem('currentUser', username);
             window.location.href = 'home.html';
         });

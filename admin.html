@@ -447,6 +447,9 @@
                     <small>Super Admin</small>
                 </div>
             </div>
+            <button class="logout-btn" id="exportDbBtn" style="margin-bottom:8px;">⬇ Export Database</button>
+            <button class="logout-btn" id="importDbBtn" style="margin-bottom:8px;">⬆ Import Database</button>
+            <input type="file" id="importDbFile" accept=".json,application/json" style="display:none;">
             <button class="logout-btn" id="logoutBtn">Sign Out</button>
         </div>
     </aside>
@@ -522,6 +525,7 @@
 
     <div class="toast" id="toast"></div>
 
+    <script src="db.js"></script>
     <script>
         // ===== Admin auth guard =====
         if (sessionStorage.getItem('isAdmin') !== 'true') {
@@ -558,71 +562,23 @@
             });
         });
 
-        // ===== Inventory (seed if missing) =====
-        const INVENTORY_KEY = 'fm_inventory';
-        const DEFAULT_INVENTORY = [
-            { sku: 'FM-1001', name: 'Apples', emoji: '🍎', category: 'Produce', price: 2.99, stock: 120, reorder: 30 },
-            { sku: 'FM-1002', name: 'Bananas', emoji: '🍌', category: 'Produce', price: 0.99, stock: 200, reorder: 50 },
-            { sku: 'FM-1003', name: 'Carrots', emoji: '🥕', category: 'Produce', price: 1.49, stock: 85, reorder: 25 },
-            { sku: 'FM-1004', name: 'Tomatoes', emoji: '🍅', category: 'Produce', price: 1.99, stock: 14, reorder: 25 },
-            { sku: 'FM-1005', name: 'Potatoes', emoji: '🥔', category: 'Produce', price: 3.99, stock: 60, reorder: 20 },
-            { sku: 'FM-1006', name: 'Onions', emoji: '🧅', category: 'Produce', price: 2.49, stock: 75, reorder: 20 },
-            { sku: 'FM-2001', name: 'Milk', emoji: '🥛', category: 'Dairy', price: 3.49, stock: 48, reorder: 20 },
-            { sku: 'FM-2002', name: 'Eggs', emoji: '🥚', category: 'Dairy', price: 4.99, stock: 8, reorder: 15 },
-            { sku: 'FM-3001', name: 'Bread', emoji: '🍞', category: 'Bakery', price: 2.99, stock: 35, reorder: 15 },
-            { sku: 'FM-2003', name: 'Cheese', emoji: '🧀', category: 'Dairy', price: 5.99, stock: 26, reorder: 10 },
-            { sku: 'FM-4001', name: 'Chicken Breast', emoji: '🍗', category: 'Meat', price: 6.99, stock: 42, reorder: 15 },
-            { sku: 'FM-4002', name: 'Beef Steak', emoji: '🥩', category: 'Meat', price: 12.99, stock: 0, reorder: 10 },
-            { sku: 'FM-5001', name: 'Rice', emoji: '🍚', category: 'Pantry', price: 4.99, stock: 90, reorder: 25 },
-            { sku: 'FM-5002', name: 'Pasta', emoji: '🍝', category: 'Pantry', price: 1.99, stock: 110, reorder: 30 },
-            { sku: 'FM-6001', name: 'Orange Juice', emoji: '🧃', category: 'Beverages', price: 3.99, stock: 55, reorder: 20 },
-            { sku: 'FM-6002', name: 'Coffee', emoji: '☕', category: 'Beverages', price: 7.99, stock: 33, reorder: 12 },
-            { sku: 'FM-6003', name: 'Tea', emoji: '🍵', category: 'Beverages', price: 4.99, stock: 44, reorder: 12 },
-            { sku: 'FM-2004', name: 'Yogurt', emoji: '🍦', category: 'Dairy', price: 0.99, stock: 12, reorder: 20 },
-            { sku: 'FM-5003', name: 'Cereal', emoji: '🥣', category: 'Pantry', price: 4.49, stock: 67, reorder: 20 },
-            { sku: 'FM-1007', name: 'Spinach', emoji: '🥬', category: 'Produce', price: 2.99, stock: 29, reorder: 15 }
-        ];
+        // ===== All data served by the portable FreshMartDB (db.js) =====
+        let inventory = DB.getInventory();
 
-        let inventory = JSON.parse(localStorage.getItem(INVENTORY_KEY) || 'null');
-        if (!inventory) {
-            inventory = DEFAULT_INVENTORY;
-            localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+        function refreshInventory() {
+            inventory = DB.getInventory();
         }
 
-        function saveInventory() {
-            localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
-        }
-
-        // ===== Load all orders from every customer =====
         function loadAllOrders() {
-            const all = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith('orders_')) {
-                    const customer = key.slice(7);
-                    const orders = JSON.parse(localStorage.getItem(key) || '[]');
-                    orders.forEach((o, idx) => all.push({ ...o, customer, _key: key, _idx: idx }));
-                }
-            }
-            all.sort((a, b) => new Date(b.date) - new Date(a.date));
-            return all;
+            return DB.getAllOrders();
         }
 
         function countCustomers() {
-            let count = 0;
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith('user_')) count++;
-            }
-            return count;
+            return DB.countUsers();
         }
 
-        function updateOrderStatus(key, idx, status) {
-            const orders = JSON.parse(localStorage.getItem(key) || '[]');
-            if (orders[idx]) {
-                orders[idx].status = status;
-                localStorage.setItem(key, JSON.stringify(orders));
-            }
+        function updateOrderStatus(orderId, status) {
+            DB.updateOrderStatus(orderId, status);
             renderAll();
             showToast('Order marked as ' + status);
         }
@@ -637,8 +593,8 @@
 
         function nextActionBtn(order) {
             const s = order.status || 'Pending';
-            if (s === 'Pending') return `<button class="action-btn primary" data-orderkey="${order._key}" data-orderidx="${order._idx}" data-status="Shipped">Ship</button>`;
-            if (s === 'Shipped') return `<button class="action-btn primary" data-orderkey="${order._key}" data-orderidx="${order._idx}" data-status="Delivered">Deliver</button>`;
+            if (s === 'Pending') return `<button class="action-btn primary" data-orderid="${order.id}" data-status="Shipped">Ship</button>`;
+            if (s === 'Shipped') return `<button class="action-btn primary" data-orderid="${order.id}" data-status="Delivered">Deliver</button>`;
             return '';
         }
 
@@ -730,7 +686,6 @@
 
             let rows = '';
             items.forEach(p => {
-                const realIdx = inventory.indexOf(p);
                 const pct = Math.min(100, (p.stock / 150) * 100);
                 rows += `
                     <tr>
@@ -738,15 +693,15 @@
                         <td>${p.category}</td>
                         <td><strong>$${p.price.toFixed(2)}</strong></td>
                         <td>
-                            <input type="number" class="stock-input" min="0" value="${p.stock}" data-invidx="${realIdx}">
+                            <input type="number" class="stock-input" min="0" value="${p.stock}" data-sku="${p.sku}">
                             <div class="stock-bar"><div class="fill" style="width:${pct}%; background:${stockBarColor(p)};"></div></div>
                         </td>
                         <td class="muted">${p.reorder}</td>
                         <td>${stockBadge(p)}</td>
                         <td>
                             <div class="restock-group">
-                                <input type="number" class="restock-input" min="1" placeholder="Qty" data-invidx="${realIdx}">
-                                <button class="action-btn primary restock-btn" data-invidx="${realIdx}">+ Restock</button>
+                                <input type="number" class="restock-input" min="1" placeholder="Qty" data-sku="${p.sku}">
+                                <button class="action-btn primary restock-btn" data-sku="${p.sku}">+ Restock</button>
                             </div>
                         </td>
                     </tr>
@@ -761,6 +716,7 @@
         }
 
         function renderAll() {
+            refreshInventory();
             renderDashboard();
             renderOrders(document.getElementById('orderSearch').value.trim());
             renderInventory(document.getElementById('inventorySearch').value.trim());
@@ -770,7 +726,7 @@
         document.getElementById('ordersTable').addEventListener('click', (e) => {
             const statusBtn = e.target.closest('[data-status]');
             if (statusBtn) {
-                updateOrderStatus(statusBtn.dataset.orderkey, parseInt(statusBtn.dataset.orderidx), statusBtn.dataset.status);
+                updateOrderStatus(statusBtn.dataset.orderid, statusBtn.dataset.status);
                 return;
             }
             const detailsBtn = e.target.closest('.toggle-details');
@@ -783,7 +739,7 @@
         document.getElementById('inventoryTable').addEventListener('click', (e) => {
             const btn = e.target.closest('.restock-btn');
             if (!btn) return;
-            const idx = parseInt(btn.dataset.invidx);
+            const sku = btn.dataset.sku;
             const qtyInput = btn.closest('.restock-group').querySelector('.restock-input');
             const qty = parseInt(qtyInput.value);
             if (!qty || qty < 1) {
@@ -792,21 +748,48 @@
                 showToast('Enter a valid restock quantity');
                 return;
             }
-            inventory[idx].stock += qty;
-            saveInventory();
+            const product = inventory.find(p => p.sku === sku);
+            DB.restock(sku, qty);
             renderAll();
-            showToast(inventory[idx].name + ' restocked (+' + qty + ' units)');
+            showToast(product.name + ' restocked (+' + qty + ' units)');
         });
 
         document.getElementById('inventoryTable').addEventListener('change', (e) => {
             const input = e.target.closest('.stock-input');
             if (!input) return;
-            const idx = parseInt(input.dataset.invidx);
+            const sku = input.dataset.sku;
             const val = Math.max(0, parseInt(input.value) || 0);
-            inventory[idx].stock = val;
-            saveInventory();
+            const product = inventory.find(p => p.sku === sku);
+            DB.setStock(sku, val);
             renderAll();
-            showToast(inventory[idx].name + ' stock updated to ' + val);
+            showToast(product.name + ' stock updated to ' + val);
+        });
+
+        // ===== Portable DB: Export / Import =====
+        document.getElementById('exportDbBtn').addEventListener('click', () => {
+            DB.exportDB();
+            showToast('Database exported as JSON file');
+        });
+
+        document.getElementById('importDbBtn').addEventListener('click', () => {
+            document.getElementById('importDbFile').click();
+        });
+
+        document.getElementById('importDbFile').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                const result = DB.importDB(reader.result);
+                if (result.ok) {
+                    renderAll();
+                    showToast('Database imported successfully');
+                } else {
+                    showToast('Import failed: ' + result.error);
+                }
+                e.target.value = '';
+            };
+            reader.readAsText(file);
         });
 
         document.getElementById('orderSearch').addEventListener('input', (e) => renderOrders(e.target.value.trim()));

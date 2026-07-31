@@ -298,6 +298,7 @@
         </form>
     </div>
 
+    <script src="db.js"></script>
     <script>
         const errorMsg = document.getElementById('errorMsg');
         const customerTab = document.getElementById('customerTab');
@@ -307,10 +308,6 @@
         const submitBtn = document.getElementById('submitBtn');
         const signupLink = document.getElementById('signupLink');
         let isAdminMode = false;
-
-        // Admin credentials (demo enterprise setup)
-        const ADMIN_USER = 'admin';
-        const ADMIN_PASS = 'admin123';
 
         customerTab.addEventListener('click', () => setMode(false));
         adminTab.addEventListener('click', () => setMode(true));
@@ -341,9 +338,9 @@
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
 
-            // ===== Admin login flow =====
+            // ===== Admin login flow (validated against FreshMartDB) =====
             if (isAdminMode) {
-                if (username === ADMIN_USER && password === ADMIN_PASS) {
+                if (DB.authenticateAdmin(username, password)) {
                     sessionStorage.setItem('currentUser', 'admin');
                     sessionStorage.setItem('isAdmin', 'true');
                     window.location.href = 'admin.html';
@@ -353,17 +350,14 @@
                 return;
             }
 
-            // ===== Customer login flow =====
+            // ===== Customer login flow (validated against FreshMartDB) =====
             sessionStorage.removeItem('isAdmin');
-            const storedUser = localStorage.getItem('user_' + username);
-            if (storedUser) {
-                const userData = JSON.parse(storedUser);
-                if (userData.password === password) {
-                    sessionStorage.setItem('currentUser', username);
-                    window.location.href = 'home.html';
-                } else {
-                    showError('Incorrect password. Please try again.');
-                }
+            const result = DB.authenticate(username, password);
+            if (result.ok) {
+                sessionStorage.setItem('currentUser', username);
+                window.location.href = 'home.html';
+            } else if (result.reason === 'bad_password') {
+                showError('Incorrect password. Please try again.');
             } else {
                 showError('User not found. Please sign up first.');
             }
